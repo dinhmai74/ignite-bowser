@@ -4,4 +4,4 @@ export * from "./typography"
 export * from "./timing"
 export * from "./themeProvider"
 export * from "./metrics"
-
+export * from "./assets"
