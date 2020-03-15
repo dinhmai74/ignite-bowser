@@ -1,11 +1,12 @@
 import { Instance, SnapshotOut, types } from "mobx-state-tree"
+import { ThemeModel } from "../theme"
 
 /**
  * A RootStore model.
  */
 //prettier-ignore
 export const RootStoreModel = types.model("RootStore").props({
-
+  themeStore: types.optional(ThemeModel, {}),
 })
 
 /**

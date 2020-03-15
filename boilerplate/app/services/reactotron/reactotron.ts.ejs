@@ -21,6 +21,22 @@ declare global {
   }
 }
 
+
+// quick log 
+function tlog(message: string, ...params: any[]) {
+  console.log(`[tron]:${message}`, params)
+
+  Tron.display({
+    name: message,
+    preview: params,
+    value: { message, params },
+    important: true,
+  })
+}
+
+console.tlog = tlog
+
+
 /** Do Nothing. */
 const noop = () => undefined
 
