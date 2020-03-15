@@ -3,18 +3,30 @@
 // In this file, we'll be kicking off our app or storybook.
 
 import "./i18n"
-import React, { useState, useEffect } from "react"
-import { AppRegistry, YellowBox } from "react-native"
-import { StatefulNavigator } from "./navigation"
-import { RootStore, RootStoreProvider, setupRootStore } from "./models/root-store"
-import { BackButtonHandler, exitRoutes } from "./navigation"
+import React, { useState, useEffect, useRef } from "react"
+import { YellowBox } from "react-native"
+import { NavigationContainerRef } from "@react-navigation/native"
+<% if (props.useExpo) { -%>
+  import { initFonts } from "./theme/fonts"
+<% } -%>
 import { contains } from "ramda"
 import { enableScreens } from "react-native-screens"
+import { SafeAreaProvider, initialWindowSafeAreaInsets } from "react-native-safe-area-context"
+
+import { RootNavigator, exitRoutes, setRootNavigation } from "./navigation"
+import { useBackButtonHandler } from "./navigation/use-back-button-handler"
+import { RootStore, RootStoreProvider, setupRootStore } from "./models/root-store"
+import * as storage from "./utils/storage"
+import getActiveRouteName from "./navigation/get-active-routename"
+import { AppThemeContext, themes } from "./theme"
+import { ApplicationProvider } from "@ui-kitten/components"
+import { mapping } from "@eva-design/eva"
+import { SafeAreaProvider } from "react-native-safe-area-context"
 
 // This puts screens in a native ViewController or Activity. If you want fully native
 // stack navigation, use `createNativeStackNavigator` in place of `createStackNavigator`:
 // https://github.com/kmagiera/react-native-screens#using-native-stack-navigator
-enableScreens();
+enableScreens()
 
 /**
  * Ignore some yellowbox warnings. Some of these are for deprecated functions
@@ -23,8 +35,10 @@ enableScreens();
 YellowBox.ignoreWarnings([
   "componentWillMount is deprecated",
   "componentWillReceiveProps is deprecated",
+  "Require cycle:",
 ])
 
+<% if (!props.useExpo) { -%>
 /**
  * Storybook still wants to use ReactNative's AsyncStorage instead of the
  * react-native-community package; this causes a YellowBox warning. This hack
@@ -37,6 +51,7 @@ Object.defineProperty(ReactNative, "AsyncStorage", {
     return require("@react-native-community/async-storage").default
   },
 })
+<% } -%>
 
 /**
  * Are we allowed to exit the app?  This is called when the back button
@@ -46,14 +61,69 @@ Object.defineProperty(ReactNative, "AsyncStorage", {
  */
 const canExit = (routeName: string) => contains(routeName, exitRoutes)
 
+export const NAVIGATION_PERSISTENCE_KEY = "NAVIGATION_STATE"
+
 /**
  * This is the root component of our app.
  */
-export const App: React.FunctionComponent<{}> = () => {
-  const [rootStore, setRootStore] = useState<RootStore | undefined>(undefined) // prettier-ignore
+const App: React.FunctionComponent<{}> = () => {
+  const navigationRef = useRef<NavigationContainerRef>()
+  const [rootStore, setRootStore] = useState<RootStore | undefined>(undefined)
+  const [initialNavigationState, setInitialNavigationState] = useState()
+  const [isRestoringNavigationState, setIsRestoringNavigationState] = useState(true)
+  const [theme, setTheme] = React.useState("light")
+
+  setRootNavigation(navigationRef)
+  useBackButtonHandler(navigationRef, canExit)
+
+  /**
+   * Keep track of state changes
+   * Track Screens
+   * Persist State
+   */
+  const routeNameRef = useRef()
+  const onNavigationStateChange = state => {
+    const previousRouteName = routeNameRef.current
+    const currentRouteName = getActiveRouteName(state)
+
+    if (previousRouteName !== currentRouteName) {
+      // track screens.
+      __DEV__ && console.tron.log(currentRouteName)
+    }
+
+    // Save the current route name for later comparision
+    routeNameRef.current = currentRouteName
+
+    // Persist state to storage
+    storage.save(NAVIGATION_PERSISTENCE_KEY, state)
+  }
+
   useEffect(() => {
-    setupRootStore().then(setRootStore)
+    (async () => {
+    <% if (props.useExpo) { -%>
+      await initFonts()
+    <% } -%>
+      setupRootStore().then(setRootStore)
+    })()
   }, [])
+
+  useEffect(() => {
+    const restoreState = async () => {
+      try {
+        const state = await storage.load(NAVIGATION_PERSISTENCE_KEY)
+
+        if (state) {
+          setInitialNavigationState(state)
+        }
+      } finally {
+        setIsRestoringNavigationState(false)
+      }
+    }
+
+    if (isRestoringNavigationState) {
+      restoreState()
+    }
+  }, [isRestoringNavigationState])
 
   // Before we show the app, we have to wait for our state to be ready.
   // In the meantime, don't render anything. This will be the background
@@ -67,30 +137,29 @@ export const App: React.FunctionComponent<{}> = () => {
     return null
   }
 
+  const currentTheme = themes[theme]
+
+  const toggle = () => {
+    const nextTheme = theme === "light" ? "dark" : "light"
+    setTheme(nextTheme)
+  }
+
   // otherwise, we're ready to render the app
   return (
     <RootStoreProvider value={rootStore}>
-      <BackButtonHandler canExit={canExit}>
-        <StatefulNavigator />
-      </BackButtonHandler>
+      <SafeAreaProvider initialSafeAreaInsets={initialWindowSafeAreaInsets}>
+        <AppThemeContext.Provider value={{ theme, toggle }}>
+          <ApplicationProvider mapping={mapping} theme={currentTheme}>
+            <RootNavigator
+              ref={navigationRef}
+              initialState={initialNavigationState}
+              onStateChange={onNavigationStateChange}
+            />
+          </ApplicationProvider>
+        </AppThemeContext.Provider>
+      </SafeAreaProvider>
     </RootStoreProvider>
   )
 }
 
-/**
- * This needs to match what's found in your app_delegate.m and MainActivity.java.
- */
-const APP_NAME = "<%= props.name %>"
-
-// Should we show storybook instead of our app?
-//
-// ⚠️ Leave this as `false` when checking into git.
-const SHOW_STORYBOOK = false
-
-let RootComponent = App
-if (__DEV__ && SHOW_STORYBOOK) {
-  // Only include Storybook if we're in dev mode
-  const { StorybookUIRoot } = require("../storybook")
-  RootComponent = StorybookUIRoot
-}
-AppRegistry.registerComponent(APP_NAME, () => RootComponent)
+export default App
