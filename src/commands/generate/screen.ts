@@ -32,7 +32,7 @@ export const run = async function(toolbox: GluegunToolbox) {
   const jobs = [
     {
       template: `screen.ejs`,
-      target: `app/screens/${screenName}.tsx`,
+      target: `app/screens/${screenName}/${screenName}.tsx`,
     },
   ]
 
@@ -41,7 +41,7 @@ export const run = async function(toolbox: GluegunToolbox) {
 
   // patch the barrel export file
   const barrelExportPath = `${process.cwd()}/app/screens/index.ts`
-  const exportToAdd = `export * from "./${screenName}"\n`
+  const exportToAdd = `export * from "./${screenName}/${screenName}"\n`
 
   if (!filesystem.exists(barrelExportPath)) {
     const msg =
@@ -55,9 +55,19 @@ export const run = async function(toolbox: GluegunToolbox) {
   // if using `react-navigation` go the extra step
   // and insert the screen into the nav router
   if (config.navigation === "react-navigation") {
-    const appNavFilePath = `${process.cwd()}/app/navigation/root-navigator.ts`
+    // const appNavFilePath = `${process.cwd()}/app/navigation/root-navigator.tsx`
+    // const routeToAdd = `\n    ${camelName}: { screen: ${pascalName} },`
+
+    let rootNavigator = parameters.second ? parameters.second : "primary-navigator"
+    rootNavigator = rootNavigator.endsWith("-navigator")
+      ? rootNavigator
+      : `${rootNavigator}-navigator`
+
+    const appNavFilePath = `${process.cwd()}/app/navigation/${rootNavigator}.tsx`
+    // const importToAdd = `, ${pascalName} `
     const importToAdd = `  ${pascalName},\n`
-    const routeToAdd = `\n    ${camelName}: { screen: ${pascalName} },`
+    // const routeToAdd = `\n    ${camelName}: { screen: ${pascalName} },`
+    const routeToAdd = `\n      <Stack.Screen name="${camelName}" component={${pascalName}} />`
 
     if (!filesystem.exists(appNavFilePath)) {
       const msg =
@@ -75,7 +85,8 @@ export const run = async function(toolbox: GluegunToolbox) {
 
     // insert screen route
     await patching.patch(appNavFilePath, {
-      after: new RegExp(Patterns.ROOT_NAV_ROUTES),
+      // after: new RegExp(Patterns.ROOT_NAV_ROUTES),
+      after: new RegExp("<Stack\\..*\\/>"),
       insert: routeToAdd,
     })
   } else {
