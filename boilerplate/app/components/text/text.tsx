@@ -2,10 +2,10 @@ import * as React from "react"
 import { Text as ReactNativeText, useTheme } from "@ui-kitten/components"
 import { presets } from "./text.presets"
 import { TextProps } from "./text.props"
-import { translate } from "../../i18n"
+import { translate } from "i18n"
 import { mergeAll, flatten } from "ramda"
 
-export function Text(props: TextProps) {
+export const Text = (props: TextProps) => {
   // grab the props
   const {
     preset,

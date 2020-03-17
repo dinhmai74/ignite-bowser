@@ -1,5 +1,5 @@
 import * as React from "react"
-import { translate } from "../../i18n"
+import { translate } from "i18n"
 import { TextFieldProps } from "./text-field.props"
 import { Input } from "@ui-kitten/components"
 

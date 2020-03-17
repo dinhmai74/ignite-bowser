@@ -27,5 +27,6 @@ export interface TextProps extends TextProperties {
   color?: string
   themeColor?: string
   underline?: boolean
+  children?: any
 }
 

@@ -5,9 +5,10 @@ import { bInterpolate } from "react-native-redash"
 import { useSafeArea } from "react-native-safe-area-context"
 import { NavigationInjectedProps } from "react-navigation"
 import { useMemoOne } from "use-memo-one"
-import { Button, Screen, SizedBox, Text, View } from "../../components"
-import { metrics, spacing, useThemes, images } from "../../theme"
-import { runTiming, runTimingWithEndAction } from "../../utils/reanimated"
+
+import { Button, Screen, SizedBox, Text, View } from "components"
+import { metrics, spacing, useThemes, images } from "theme"
+import { runTiming, runTimingWithEndAction } from "utils/reanimated"
 
 const styles = StyleSheet.create({
   container: {

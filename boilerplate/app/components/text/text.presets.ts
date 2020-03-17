@@ -1,12 +1,11 @@
 import { TextStyle } from "react-native"
-import { typography } from "../../theme"
+import { typography } from "theme"
 
 /**
  * All text will start off looking like this.
  */
 const BASE: TextStyle = {
   fontFamily: typography.primary,
-  fontSize: 15,
 }
 
 /**
